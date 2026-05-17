@@ -1,0 +1,88 @@
+/* FAQ accordion block styles. Theme CSS variables only — never hardcoded
+   brand tokens. Mobile-first; verified at 320px. */
+.faq-accordion {
+  font-family: var(--font-body-family, inherit);
+  color: var(--color-foreground, inherit);
+  margin: 1.5rem 0;
+}
+.faq-accordion__heading {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+.faq-accordion__list {
+  display: block;
+}
+.faq-accordion__loading {
+  color: var(--color-foreground, inherit);
+  opacity: 0.7;
+}
+.faq-accordion__error {
+  padding: 0.75rem;
+  border: 1px solid currentColor;
+  border-radius: 0.25rem;
+}
+.faq-accordion__item {
+  border-bottom: 1px solid var(--color-foreground, #ddd);
+}
+.faq-accordion__summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 0.75rem 0;
+  font-weight: 600;
+  list-style: none;
+}
+.faq-accordion__summary::-webkit-details-marker { display: none; }
+.faq-accordion__summary:focus-visible {
+  outline: 2px solid var(--color-button, #000);
+  outline-offset: 2px;
+}
+.faq-accordion__item[open] .faq-accordion__chevron {
+  transform: rotate(45deg);
+}
+.faq-accordion__chevron {
+  transition: transform 0.15s ease;
+  font-size: 1.25rem;
+}
+.faq-accordion__answer {
+  padding: 0.25rem 0 0.75rem;
+  line-height: 1.5;
+}
+.faq-accordion__answer a {
+  color: var(--color-button, inherit);
+}
+.faq-accordion__vote {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 0 0 0.75rem;
+  font-size: 0.9rem;
+}
+.faq-accordion__vote-btn {
+  background: var(--color-background, transparent);
+  color: inherit;
+  border: 1px solid var(--color-foreground, #888);
+  padding: 0.3rem 0.7rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: inherit;
+}
+.faq-accordion__vote-btn:hover {
+  background: var(--color-button, currentColor);
+  color: var(--color-button-text, var(--color-background, #fff));
+}
+.faq-accordion__vote-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.faq-accordion__vote-status {
+  margin-left: auto;
+  font-style: italic;
+}
+@media (max-width: 480px) {
+  .faq-accordion__summary { font-size: 0.95rem; }
+  .faq-accordion__heading { font-size: 1.25rem; }
+}

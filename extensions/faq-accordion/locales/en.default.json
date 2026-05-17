@@ -1,0 +1,18 @@
+{
+  "extension": {
+    "name": "FAQ accordion"
+  },
+  "settings": {
+    "category_slug": {
+      "label": "Category slug",
+      "info": "Paste the slug shown next to a category in the FAQ admin (e.g. shipping)."
+    },
+    "heading": {
+      "label": "Heading",
+      "default": "Frequently asked questions"
+    },
+    "show_heading": {
+      "label": "Show heading"
+    }
+  }
+}

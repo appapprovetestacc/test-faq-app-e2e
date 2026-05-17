@@ -1,0 +1,190 @@
+{% comment %}
+  FAQ accordion block. Merchants pick a category slug from the block
+  settings; this block fetches /apps/faq/category/<slug>.json on load
+  and renders the entries as a native <details> accordion. Theme CSS
+  variables only — never hardcoded colors/fonts. Mobile-first.
+
+  Progressive-enhancement note: the wrapper renders a "Loading FAQs…"
+  fallback inside <noscript> so search engines + screen readers see
+  meaningful HTML even before JS executes.
+{% endcomment %}
+
+{%- if block.settings.category_slug != blank -%}
+  <section
+    class="faq-accordion"
+    data-faq-accordion
+    data-faq-slug="{{ block.settings.category_slug | escape }}"
+    data-faq-proxy="{{ shop.url }}/apps/faq"
+    role="region"
+    aria-label="{{ block.settings.heading | default: 'Frequently asked questions' | escape }}"
+  >
+    {%- if block.settings.show_heading -%}
+      <h2 class="faq-accordion__heading">{{ block.settings.heading | escape }}</h2>
+    {%- endif -%}
+
+    <div class="faq-accordion__list" data-faq-list>
+      <noscript>
+        <p>
+          <a href="/apps/faq/category/{{ block.settings.category_slug | escape }}">
+            View frequently asked questions
+          </a>
+        </p>
+      </noscript>
+      <p class="faq-accordion__loading" data-faq-loading>Loading FAQs…</p>
+    </div>
+    <p class="faq-accordion__error" data-faq-error hidden role="alert"></p>
+  </section>
+
+  <script>
+    (function() {
+      var roots = document.querySelectorAll('[data-faq-accordion]');
+      if (!roots.length) return;
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+      function anonToken() {
+        try {
+          var t = localStorage.getItem('faq-app-anon');
+          if (t) return t;
+          var bytes = new Uint8Array(12);
+          (window.crypto || window.msCrypto).getRandomValues(bytes);
+          var hex = '';
+          for (var i = 0; i < bytes.length; i++) hex += ('0' + bytes[i].toString(16)).slice(-2);
+          localStorage.setItem('faq-app-anon', hex);
+          return hex;
+        } catch(e) { return 'anon-' + Date.now(); }
+      }
+      Array.prototype.forEach.call(roots, function(root) {
+        var slug = root.getAttribute('data-faq-slug');
+        var proxy = root.getAttribute('data-faq-proxy') || '/apps/faq';
+        var list = root.querySelector('[data-faq-list]');
+        var error = root.querySelector('[data-faq-error]');
+        var loading = root.querySelector('[data-faq-loading]');
+        fetch(proxy + '/category/' + encodeURIComponent(slug), {
+          credentials: 'same-origin'
+        }).then(function(r) {
+          if (!r.ok) throw new Error('Could not load FAQs (' + r.status + ').');
+          return r.json();
+        }).then(function(data) {
+          if (loading) loading.remove();
+          if (!data || !data.entries || !data.entries.length) {
+            list.innerHTML = '<p>No FAQs in this category yet.</p>';
+            return;
+          }
+          var html = '';
+          for (var i = 0; i < data.entries.length; i++) {
+            var e = data.entries[i];
+            html += '<details class="faq-accordion__item" data-faq-entry="' + esc(e.id) + '">' +
+              '<summary class="faq-accordion__summary">' +
+              '<span>' + esc(e.question) + '</span>' +
+              '<span class="faq-accordion__chevron" aria-hidden="true">+</span>' +
+              '</summary>' +
+              '<div class="faq-accordion__answer">' + (e.answerHtml || '') + '</div>' +
+              '<div class="faq-accordion__vote" data-faq-vote-entry="' + esc(e.id) + '">' +
+              '<span>Was this helpful?</span>' +
+              '<button type="button" class="faq-accordion__vote-btn" data-faq-vote="up" aria-label="Yes">' +
+              '👍 <span data-faq-helpful>' + (Number(e.helpfulCount) || 0) + '</span></button>' +
+              '<button type="button" class="faq-accordion__vote-btn" data-faq-vote="down" aria-label="No">' +
+              '👎 <span data-faq-unhelpful>' + (Number(e.unhelpfulCount) || 0) + '</span></button>' +
+              '<span class="faq-accordion__vote-status" role="status" aria-live="polite" data-faq-vote-status></span>' +
+              '</div>' +
+              '</details>';
+          }
+          list.innerHTML = html;
+        }).catch(function(err) {
+          if (loading) loading.remove();
+          if (error) {
+            error.hidden = false;
+            error.textContent = err && err.message ? err.message : 'FAQs could not be loaded.';
+          }
+        });
+
+        // Track expansions as views.
+        var seen = {};
+        try { seen = JSON.parse(sessionStorage.getItem('faq-app-viewed') || '{}'); } catch(e) {}
+        root.addEventListener('toggle', function(ev) {
+          var d = ev.target;
+          if (!d || d.tagName !== 'DETAILS' || !d.open) return;
+          var id = d.getAttribute('data-faq-entry');
+          if (!id || seen[id]) return;
+          seen[id] = 1;
+          try { sessionStorage.setItem('faq-app-viewed', JSON.stringify(seen)); } catch(e) {}
+          var fd = new FormData();
+          fd.append('id', id);
+          fetch(proxy + '/' + encodeURIComponent(id) + '/view', {
+            method: 'POST', body: fd, credentials: 'same-origin'
+          }).catch(function(){});
+        }, true);
+
+        // Voting.
+        root.addEventListener('click', function(ev) {
+          var btn = ev.target && ev.target.closest('[data-faq-vote]');
+          if (!btn) return;
+          var wrap = btn.closest('[data-faq-vote-entry]');
+          if (!wrap) return;
+          var id = wrap.getAttribute('data-faq-vote-entry');
+          var vote = btn.getAttribute('data-faq-vote');
+          var status = wrap.querySelector('[data-faq-vote-status]');
+          var btns = wrap.querySelectorAll('[data-faq-vote]');
+          for (var i = 0; i < btns.length; i++) btns[i].disabled = true;
+          var fd = new FormData();
+          fd.append('vote', vote);
+          fd.append('anonToken', anonToken());
+          fetch(proxy + '/' + encodeURIComponent(id) + '/vote', {
+            method: 'POST', body: fd, credentials: 'same-origin'
+          }).then(function(r){ return r.json().catch(function(){return null;}); })
+            .then(function(json) {
+              if (json && json.ok) {
+                if (vote === 'up') {
+                  var el = wrap.querySelector('[data-faq-helpful]');
+                  if (el) el.textContent = String(json.helpful);
+                } else {
+                  var el2 = wrap.querySelector('[data-faq-unhelpful]');
+                  if (el2) el2.textContent = String(json.unhelpful);
+                }
+                if (status) status.textContent = 'Thanks!';
+              } else {
+                if (status) status.textContent = (json && json.error) || 'Vote already recorded.';
+              }
+            })
+            .catch(function() {
+              if (status) status.textContent = 'Could not record vote.';
+              for (var i = 0; i < btns.length; i++) btns[i].disabled = false;
+            });
+        });
+      });
+    })();
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "t:extension.name",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "category_slug",
+      "label": "t:settings.category_slug.label",
+      "info": "t:settings.category_slug.info"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_heading",
+      "label": "t:settings.show_heading.label",
+      "default": true
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "t:settings.heading.label",
+      "default": "t:settings.heading.default"
+    }
+  ],
+  "stylesheet": "faq-accordion.css"
+}
+{% endschema %}

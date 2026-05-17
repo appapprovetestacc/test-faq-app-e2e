@@ -43,6 +43,15 @@ directory = "./build/client"
 APPAPPROVE_PROJECT_SLUG = "test-faq-app-e2e"
 SCOPES = "write_themes"
 
+# D1 binding for FAQ persistence (categories, entries, votes). AppApprove's
+# deploy pipeline auto-provisions the DB on first deploy; `database_id` is
+# overwritten with the live ID at deploy time. The placeholder keeps local
+# `wrangler dev` working — drop in the real id if you run wrangler locally.
+[[d1_databases]]
+binding = "D1"
+database_name = "test-faq-app-e2e-db"
+database_id = "placeholder-overwritten-at-deploy"
+
 # CF Cron Triggers — uncomment + add schedules here, then mirror them in
 # appapprove.config.ts `crons` so the dispatcher knows which handler to
 # call. AppApprove's deploy pipeline diffs the two and warns on drift.

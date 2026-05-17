@@ -1,0 +1,17 @@
+# FAQ accordion theme-app-embed. Renders a single FAQ category as an
+# accordion on any product / collection / page where the merchant adds
+# the block in the theme editor. Fetches its data from the same-origin
+# app-proxy endpoint /apps/faq/category/<slug>.json — no third-party
+# network, so network_access stays false.
+
+api_version = "2025-10"
+
+[[extensions]]
+type = "theme"
+name = "t:extension.name"
+handle = "faq-accordion"
+
+  [extensions.capabilities]
+  network_access = false
+  block_progress = false
+  api_access = false

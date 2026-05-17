@@ -18,6 +18,14 @@ redirect_urls = [
   "https://test-faq-app-e2e.appapprove.app/auth/callback"
 ]
 
+# Storefront-side FAQ surface. /apps/faq → SSR FAQ page; /apps/faq/category/<slug>
+# → JSON for the theme-app-embed accordion. `url` is overwritten by AppApprove
+# at deploy time with the live Worker URL.
+[app_proxy]
+url = "https://test-faq-app-e2e.appapprove.app"
+subpath = "faq"
+prefix = "apps"
+
 [webhooks]
 api_version = "2025-01"
 
